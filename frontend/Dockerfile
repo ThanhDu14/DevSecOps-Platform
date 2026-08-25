@@ -14,7 +14,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # ------------------- Stage 2: Final Stage ------------------------------
-FROM node:21-slim
+FROM node:21-alpine
 
 # Set the working directory to /app
 WORKDIR /app
