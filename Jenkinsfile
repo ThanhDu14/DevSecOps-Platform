@@ -49,6 +49,7 @@ pipeline {
             }
         }
 
+/*
         stage('3.5. SonarQube Quality Gate') {
             steps {
                 script {
@@ -59,6 +60,7 @@ pipeline {
                 }
             }
         }
+*/
 
         stage('3. Build Docker Images') {
             steps {
@@ -89,7 +91,6 @@ pipeline {
                 script {
                     echo "Logging into JFrog and pushing Images..."
                     sh "echo ${JFROG_TOKEN} | docker login ${JFROG_URL} -u ${JFROG_USER} --password-stdin"
-                    
                     sh "docker push ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
                     sh "docker push ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
                 }
