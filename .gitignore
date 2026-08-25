@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+!.env.sample
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# OS/IDE files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Docker and Kubernetes local files (if any shouldn't be pushed)
+# For example, avoid pushing local bash history or temp files
+env_ip.txt
