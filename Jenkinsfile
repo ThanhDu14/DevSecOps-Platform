@@ -75,8 +75,9 @@ pipeline {
                 script {
                     echo "Scanning Docker Images for vulnerabilities..."
                     // Set exit-code to 1 to block vulnerable Images from being pushed to JFrog
-                    sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
-                    sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
+                    // We use --vuln-type os because Application packages are already scanned by 'trivy fs' in Stage 2
+                    sh "trivy image --vuln-type os --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
+                    sh "trivy image --vuln-type os --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
                 }
             }
         }
