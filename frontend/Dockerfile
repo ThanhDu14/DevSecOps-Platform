@@ -1,5 +1,5 @@
 # ------------------- Stage 1: Build Stage ------------------------------
-FROM node:21 AS frontend-builder
+FROM node:22 AS frontend-builder
 
 # Set the working directory to /app
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # ------------------- Stage 2: Final Stage ------------------------------
-FROM node:21-alpine
+FROM node:22-alpine
 
 # Set the working directory to /app
 WORKDIR /app

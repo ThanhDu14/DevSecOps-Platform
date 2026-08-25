@@ -1,5 +1,5 @@
 # Stage 1
-FROM node:21 AS backend-builder
+FROM node:22 AS backend-builder
 
 # setup the working dir
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN npm i
 RUN npm run test
 
 # Stage 2
-FROM node:21-alpine
+FROM node:22-alpine
 
 # setup the working dir
 WORKDIR /app
