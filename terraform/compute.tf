@@ -61,11 +61,7 @@ resource "google_compute_instance" "jenkins_agent" {
   zone         = var.zone
   tags         = ["allow-ssh", "jenkins-agent"]
 
-  scheduling {
-    preemptible        = true
-    automatic_restart  = false
-    provisioning_model = "SPOT"
-  }
+
 
   service_account {
     email  = google_service_account.jenkins_sa.email

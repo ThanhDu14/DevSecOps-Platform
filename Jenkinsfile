@@ -20,21 +20,21 @@ pipeline {
             }
         }
 
-        stage('2. OWASP Dependency Check'){
+        stage('2. Trivy FS (SCA Scan)'){
             steps{
-                // Bỏ cờ --noupdate để nó tải Database CVE trong lần chạy đầu tiên
-                dependencyCheck additionalArguments: '--scan ./backend --scan ./frontend --format HTML --format XML', odcInstallation: 'DP-Check'
-                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                script {
+                    // Set exit-code to 1: If HIGH/CRITICAL vulnerabilities are found, fail the Pipeline immediately (Security Gate)
+                    sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 ."
+                }
             }
         }
         stage('3. SonarQube Code Analysis') {
             environment {
-                // Lấy đường dẫn của tool SonarScanner mà Jenkins tự động cài
                 SCANNER_HOME = tool 'SonarScanner'
             }
             steps {
                 script {
-                    echo "Đang quét mã nguồn bằng SonarCloud..."
+                    echo "Scanning source code with SonarCloud..."
                     sh """
                         ${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -47,10 +47,21 @@ pipeline {
             }
         }
 
+        stage('3.5. SonarQube Quality Gate') {
+            steps {
+                script {
+                    // Wait for SonarQube analysis results. If Quality Gate fails, abort the Pipeline.
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+        }
+
         stage('3. Build Docker Images') {
             steps {
                 script {
-                    echo "Đóng gói Backend và Frontend..."
+                    echo "Building Backend and Frontend Docker Images..."
                     sh "docker build -t ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG} ./backend"
                     sh "docker build -t ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG} ./frontend"
                 }
@@ -60,20 +71,21 @@ pipeline {
         stage('4. Trivy Image Vulnerability Scan') {
             steps {
                 script {
-                    echo "Quét lỗi bảo mật Docker Image..."
-                    sh "trivy image --severity HIGH,CRITICAL --exit-code 0 ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
-                    sh "trivy image --severity HIGH,CRITICAL --exit-code 0 ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
+                    echo "Scanning Docker Images for vulnerabilities..."
+                    // Set exit-code to 1 to block vulnerable Images from being pushed to JFrog
+                    sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
+                    sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
                 }
             }
         }
 
-        stage('5. Push to JFrog (Chỉ chạy trên nhánh Main)') {
+        stage('5. Push to JFrog (Main Branch Only)') {
             when {
                 branch 'main'
             }
             steps {
                 script {
-                    echo "Đăng nhập JFrog và đẩy Image..."
+                    echo "Logging into JFrog and pushing Images..."
                     sh "echo ${JFROG_TOKEN} | docker login ${JFROG_URL} -u ${JFROG_USER} --password-stdin"
                     
                     sh "docker push ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
@@ -85,9 +97,17 @@ pipeline {
 
     post {
         always {
-            // Dọn dẹp rác trên Agent
+            // Clean up Docker images on Agent regardless of Pipeline success or failure
             sh "docker rmi ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG} || true"
             sh "docker rmi ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG} || true"
+        }
+        success {
+            echo "✅ PIPELINE SUCCESSFUL! Images are ready to be deployed."
+            // Slack / Email notifications can be configured here
+        }
+        failure {
+            echo "❌ PIPELINE FAILED! Please check the logs of the security tools (Trivy/Sonar)."
+            // Emergency alert APIs can be triggered here
         }
     }
 }
