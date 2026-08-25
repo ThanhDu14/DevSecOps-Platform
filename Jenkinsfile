@@ -22,18 +22,21 @@ pipeline {
 
         stage('2. OWASP Dependency Check'){
             steps{
-                script{
-                    dependencyCheck additionalArguments: '--scan ./backend --scan ./frontend --format HTML --format XML --noupdate', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
-                }
+                // Bỏ cờ --noupdate để nó tải Database CVE trong lần chạy đầu tiên
+                dependencyCheck additionalArguments: '--scan ./backend --scan ./frontend --format HTML --format XML', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
         }
         stage('3. SonarQube Code Analysis') {
+            environment {
+                // Lấy đường dẫn của tool SonarScanner mà Jenkins tự động cài
+                SCANNER_HOME = tool 'SonarScanner'
+            }
             steps {
                 script {
                     echo "Đang quét mã nguồn bằng SonarCloud..."
                     sh """
-                        sonar-scanner \
+                        ${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                         -Dsonar.organization=${SONAR_ORG} \
                         -Dsonar.sources=./backend,./frontend \
