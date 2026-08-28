@@ -105,11 +105,21 @@ pipeline {
         }
         success {
             echo "✅ PIPELINE SUCCESSFUL! Images are ready to be deployed."
-            // Slack / Email notifications can be configured here
+            script {
+                def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
+                mail to: authorEmail,
+                     subject: "✅ SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                     body: "Great news! The pipeline completed successfully.\nCheck console output at: ${env.BUILD_URL}"
+            }
         }
         failure {
             echo "❌ PIPELINE FAILED! Please check the logs of the security tools (Trivy/Sonar)."
-            // Emergency alert APIs can be triggered here
+            script {
+                def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
+                mail to: authorEmail,
+                     subject: "❌ FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                     body: "The pipeline failed. Please check the logs of the security tools (Trivy/Sonar).\nCheck console output at: ${env.BUILD_URL}"
+            }
         }
     }
 }

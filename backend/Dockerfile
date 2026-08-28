@@ -11,10 +11,11 @@ COPY . .
 RUN npm i
 
 # tests
-RUN npm run test
+RUN npm run test:unit
 
 # Stage 2
 FROM node:22-alpine
+RUN apk upgrade --no-cache
 
 # setup the working dir
 WORKDIR /app

@@ -15,6 +15,7 @@ COPY . .
 
 # ------------------- Stage 2: Final Stage ------------------------------
 FROM node:22-alpine
+RUN apk upgrade --no-cache
 
 # Set the working directory to /app
 WORKDIR /app
