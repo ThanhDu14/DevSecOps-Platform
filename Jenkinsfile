@@ -82,7 +82,7 @@ pipeline {
             }
         }
 
-        stage('5. Push to JFrog (Main Branch Only)') {
+        stage('5. Push to JFrog') {
             when {
                 anyOf {
                     branch 'main'
@@ -95,6 +95,24 @@ pipeline {
                     sh "echo ${JFROG_TOKEN} | docker login ${JFROG_URL} -u ${JFROG_USER} --password-stdin"
                     sh "docker push ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
                     sh "docker push ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('6. Trigger GitOps CD') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'feature-build-ci/cd'
+                }
+            }
+            steps {
+                script {
+                    echo "Triggering GitOps CD Pipeline to update Kubernetes manifests..."
+                    // Gọi Job CD và truyền tham số IMAGE_TAG sang
+                    build job: 'Wanderlust-GitOps-CD', parameters: [
+                        string(name: 'IMAGE_TAG', value: env.IMAGE_TAG)
+                    ], wait: false
                 }
             }
         }

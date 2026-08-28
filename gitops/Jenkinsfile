@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    environment {
+        GITHUB_CREDENTIAL_ID = 'github-credentials'
+        GIT_REPO_URL = 'https://github.com/ThanhDu14/DevSecOps-Platform.git'
+        GIT_BRANCH = 'feature-build-ci/cd'
+    }
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: '', description: 'Docker Image Tag to deploy (e.g., v1.0.12)')
+    }
+
+    stages {
+        stage('1. Checkout Code') {
+            steps {
+                git branch: "${GIT_BRANCH}", credentialsId: "${GITHUB_CREDENTIAL_ID}", url: "${GIT_REPO_URL}"
+            }
+        }
+
+        stage('2. Update K8s Manifests') {
+            steps {
+                script {
+                    if (params.IMAGE_TAG == '') {
+                        error "Parameter IMAGE_TAG is required!"
+                    }
+                    
+                    echo "Updating K8s YAML files with new image tag: ${params.IMAGE_TAG}"
+                    
+                    // Dùng lệnh sed để thay thế version của image
+                    sh """
+                        sed -i "s|image: thanhdu.jfrog.io/docker-local/frontend:.*|image: thanhdu.jfrog.io/docker-local/frontend:${params.IMAGE_TAG}|g" k8s/frontend.yaml
+                        sed -i "s|image: thanhdu.jfrog.io/docker-local/backend:.*|image: thanhdu.jfrog.io/docker-local/backend:${params.IMAGE_TAG}|g" k8s/backend.yaml
+                    """
+                }
+            }
+        }
+
+        stage('3. Push to GitHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDENTIAL_ID}", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        sh """
+                            git config user.email "jenkins-gitops@devsecops.local"
+                            git config user.name "Jenkins GitOps Bot"
+                            
+                            git add k8s/frontend.yaml k8s/backend.yaml
+                            
+                            # Kiểm tra xem có sự thay đổi nào không, nếu có thì commit và push
+                            if ! git diff-index --quiet HEAD; then
+                                git commit -m "GitOps: Update image tags to ${params.IMAGE_TAG}"
+                                git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/ThanhDu14/DevSecOps-Platform.git HEAD:${GIT_BRANCH}
+                            else
+                                echo "No changes detected. Skipping push."
+                            fi
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
