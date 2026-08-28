@@ -1,5 +1,5 @@
 # ------------------- Stage 1: Build Stage ------------------------------
-FROM node:22 AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 
 # Set the working directory to /app
 WORKDIR /app
