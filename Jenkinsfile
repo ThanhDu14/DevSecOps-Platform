@@ -1,5 +1,10 @@
 pipeline {
     agent { label 'docker' } 
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
 
     environment {
         JFROG_URL = credentials('jfrog-url') 
@@ -60,7 +65,7 @@ pipeline {
         }
 */
 
-        stage('3. Build Docker Images') {
+        stage('4. Build Docker Images') {
             steps {
                 script {
                     echo "Building Backend and Frontend Docker Images..."
@@ -70,7 +75,7 @@ pipeline {
             }
         }
 
-        stage('4. Trivy Image Vulnerability Scan') {
+        stage('5. Trivy Image Vulnerability Scan') {
             steps {
                 script {
                     echo "Scanning Docker Images for vulnerabilities..."
@@ -82,29 +87,25 @@ pipeline {
             }
         }
 
-        stage('5. Push to JFrog') {
+        stage('6. Push to JFrog') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'feature-build-ci/cd'
-                }
+                branch 'main'
             }
             steps {
                 script {
                     echo "Logging into JFrog and pushing Images..."
-                    sh "echo ${JFROG_TOKEN} | docker login ${JFROG_URL} -u ${JFROG_USER} --password-stdin"
-                    sh "docker push ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
-                    sh "docker push ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
+                    withCredentials([string(credentialsId: 'jfrog-credentials', variable: 'JFROG_SECRET')]) {
+                        sh 'echo $JFROG_SECRET | docker login $JFROG_URL -u $JFROG_USER --password-stdin'
+                        sh "docker push ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG}"
+                        sh "docker push ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG}"
+                    }
                 }
             }
         }
 
-        stage('6. Trigger GitOps CD') {
+        stage('7. Trigger GitOps CD') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'feature-build-ci/cd'
-                }
+                branch 'main'
             }
             steps {
                 script {
@@ -127,19 +128,27 @@ pipeline {
         success {
             echo "✅ PIPELINE SUCCESSFUL! Images are ready to be deployed."
             script {
-                def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
-                mail to: authorEmail,
-                     subject: "✅ SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-                     body: "Great news! The pipeline completed successfully.\nCheck console output at: ${env.BUILD_URL}"
+                try {
+                    def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
+                    mail to: authorEmail,
+                         subject: "✅ SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                         body: "Great news! The pipeline completed successfully.\nCheck console output at: ${env.BUILD_URL}"
+                } catch (Exception e) {
+                    echo "Could not fetch git author email. Skipping success email notification."
+                }
             }
         }
         failure {
             echo "❌ PIPELINE FAILED! Please check the logs of the security tools (Trivy/Sonar)."
             script {
-                def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
-                mail to: authorEmail,
-                     subject: "❌ FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-                     body: "The pipeline failed. Please check the logs of the security tools (Trivy/Sonar).\nCheck console output at: ${env.BUILD_URL}"
+                try {
+                    def authorEmail = sh(script: "git --no-pager show -s --format='%ae'", returnStdout: true).trim()
+                    mail to: authorEmail,
+                         subject: "❌ FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                         body: "The pipeline failed. Please check the logs of the security tools (Trivy/Sonar).\nCheck console output at: ${env.BUILD_URL}"
+                } catch (Exception e) {
+                    echo "Could not fetch git author email. Skipping failure email notification."
+                }
             }
         }
     }
