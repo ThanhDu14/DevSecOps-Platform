@@ -84,7 +84,10 @@ pipeline {
 
         stage('5. Push to JFrog (Main Branch Only)') {
             when {
-                branch 'main'
+                anyOf {
+                    branch 'main'
+                    branch 'feature-build-ci/cd'
+                }
             }
             steps {
                 script {
