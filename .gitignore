@@ -7,6 +7,7 @@ yarn-error.log
 .env
 .env.*
 !.env.sample
+!.env.docker
 
 # Build outputs
 dist/
@@ -22,3 +23,19 @@ coverage/
 # Docker and Kubernetes local files (if any shouldn't be pushed)
 # For example, avoid pushing local bash history or temp files
 env_ip.txt
+Gemini.md
+
+# Terraform files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

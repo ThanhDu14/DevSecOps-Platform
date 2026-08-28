@@ -1,5 +1,5 @@
 # ------------------- Stage 1: Build Stage ------------------------------
-FROM node:21 AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 
 # Set the working directory to /app
 WORKDIR /app
@@ -8,13 +8,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .
 
 # ------------------- Stage 2: Final Stage ------------------------------
-FROM node:21-slim
+FROM node:22-alpine
+RUN apk upgrade --no-cache
 
 # Set the working directory to /app
 WORKDIR /app
@@ -22,8 +23,7 @@ WORKDIR /app
 # Copy built assets and dependencies from frontend-builder stage
 COPY --from=frontend-builder /app .
 
-# Copy the .env.sample file to .env.local
-COPY .env.docker .env.local
+
 
 # Expose port 5173 for the Node.js application
 EXPOSE 5173

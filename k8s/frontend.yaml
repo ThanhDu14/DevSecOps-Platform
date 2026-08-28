@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      imagePullSecrets:
+        - name: jfrog-secret
+      containers:
+        - name: frontend
+          image: thanhdu.jfrog.io/docker-local/frontend:v1.0.4
+          ports:
+            - containerPort: 5173
+          env:
+            - name: VITE_API_PATH
+              value: "http://34.142.181.235:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 5173
+      targetPort: 5173

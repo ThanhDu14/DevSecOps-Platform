@@ -1,5 +1,5 @@
 # Stage 1
-FROM node:21 AS backend-builder
+FROM node:22 AS backend-builder
 
 # setup the working dir
 WORKDIR /app
@@ -14,7 +14,8 @@ RUN npm i
 RUN npm run test
 
 # Stage 2
-FROM node:21-slim
+FROM node:22-alpine
+RUN apk upgrade --no-cache
 
 # setup the working dir
 WORKDIR /app
@@ -22,7 +23,7 @@ WORKDIR /app
 # copy the above stage as compressed
 COPY --from=backend-builder /app .
 
-COPY .env.docker .env
+
 
 # Port
 EXPOSE 8080
