@@ -18,7 +18,7 @@ spec:
         - name: jfrog-secret
       containers:
         - name : backend
-          image: thanhdu.jfrog.io/docker-local/backend:v1.0.4
+          image: thanhdu.jfrog.io/docker-local/backend:v1.0.2
           ports:
             - containerPort: 8080
           envFrom:
