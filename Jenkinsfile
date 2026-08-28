@@ -69,8 +69,8 @@ pipeline {
             steps {
                 script {
                     echo "Building Backend and Frontend Docker Images..."
-                    sh "docker build -t ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG} ./backend"
-                    sh "docker build -t ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG} ./frontend"
+                    sh "docker build --platform linux/amd64 -t ${JFROG_DOCKER_REPO}/backend:${IMAGE_TAG} ./backend"
+                    sh "docker build --platform linux/amd64 -t ${JFROG_DOCKER_REPO}/frontend:${IMAGE_TAG} ./frontend"
                 }
             }
         }
